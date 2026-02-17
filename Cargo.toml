@@ -11,7 +11,7 @@ categories = ["network-programming", "web-programming"]
 
 [dependencies]
 # Zentinel Protocol
-zentinel-agent-protocol = "0.3"
+zentinel-agent-protocol = { version = "0.5", git = "https://github.com/zentinelproxy/zentinel.git", package = "zentinel-agent-protocol" }
 
 # Async runtime
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "sync", "time", "net", "io-util"] }
