@@ -1,25 +1,25 @@
-//! Sentinel Transform Agent CLI entry point.
+//! Zentinel Transform Agent CLI entry point.
 //!
-//! Request/Response transformation agent for Sentinel proxy using v2 protocol.
+//! Request/Response transformation agent for Zentinel proxy using v2 protocol.
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use sentinel_agent_protocol::v2::GrpcAgentServerV2;
-use sentinel_agent_transform::{TransformAgent, TransformConfig};
+use zentinel_agent_protocol::v2::GrpcAgentServerV2;
+use zentinel_agent_transform::{TransformAgent, TransformConfig};
 use std::path::PathBuf;
 use tracing::info;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 #[derive(Parser, Debug)]
-#[command(name = "sentinel-agent-transform")]
-#[command(author, version, about = "Request/Response transformation agent for Sentinel")]
+#[command(name = "zentinel-agent-transform")]
+#[command(author, version, about = "Request/Response transformation agent for Zentinel")]
 struct Args {
     /// Configuration file path (YAML or JSON)
     #[arg(short, long)]
     config: Option<PathBuf>,
 
     /// Template directory path
-    #[arg(long, default_value = "/etc/sentinel/templates")]
+    #[arg(long, default_value = "/etc/zentinel/templates")]
     template_dir: PathBuf,
 
     /// gRPC address to listen on (e.g., "0.0.0.0:50051").
@@ -52,7 +52,7 @@ settings:
   # Maximum body size to buffer for transformation (bytes)
   max_body_size: 10485760  # 10MB
   # Template directory path
-  template_dir: "/etc/sentinel/templates"
+  template_dir: "/etc/zentinel/templates"
   # Enable template caching
   cache_templates: true
   # Enable debug headers (X-Transform-Rule, X-Transform-Time)
@@ -161,7 +161,7 @@ async fn main() -> Result<()> {
     info!(
         config = ?args.config,
         grpc_address = %grpc_addr,
-        "Starting Sentinel Transform Agent (gRPC v2)"
+        "Starting Zentinel Transform Agent (gRPC v2)"
     );
 
     let addr = grpc_addr

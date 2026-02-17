@@ -1,17 +1,17 @@
 [package]
-name = "sentinel-agent-transform"
+name = "zentinel-agent-transform"
 version = "0.2.0"
 edition = "2021"
 authors = ["Raskell <hello@raskell.io>"]
-description = "Request and response transformation agent for Sentinel proxy"
+description = "Request and response transformation agent for Zentinel proxy"
 license = "Apache-2.0"
-repository = "https://github.com/raskell-io/sentinel-agent-transform"
-keywords = ["sentinel", "proxy", "agent", "transform", "rewrite"]
+repository = "https://github.com/zentinelproxy/zentinel-agent-transform"
+keywords = ["zentinel", "proxy", "agent", "transform", "rewrite"]
 categories = ["network-programming", "web-programming"]
 
 [dependencies]
-# Sentinel Protocol
-sentinel-agent-protocol = "0.3"
+# Zentinel Protocol
+zentinel-agent-protocol = "0.3"
 
 # Async runtime
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "sync", "time", "net", "io-util"] }
@@ -57,9 +57,9 @@ tokio-test = "0.4"
 tempfile = "3"
 
 [[bin]]
-name = "sentinel-agent-transform"
+name = "zentinel-agent-transform"
 path = "src/main.rs"
 
 [lib]
-name = "sentinel_agent_transform"
+name = "zentinel_agent_transform"
 path = "src/lib.rs"

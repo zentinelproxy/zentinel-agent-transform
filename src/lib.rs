@@ -1,4 +1,4 @@
-//! Request/Response Transform Agent for Sentinel.
+//! Request/Response Transform Agent for Zentinel.
 //!
 //! This agent provides advanced request and response transformation capabilities:
 //!

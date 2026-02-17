@@ -1,7 +1,7 @@
 //! Integration tests for the Transform Agent.
 
-use sentinel_agent_transform::{TransformAgent, TransformConfig};
-use sentinel_agent_transform::config::{PatternType, JsonTransform};
+use zentinel_agent_transform::{TransformAgent, TransformConfig};
+use zentinel_agent_transform::config::{PatternType, JsonTransform};
 
 // =============================================================================
 // Configuration Parsing Tests
@@ -347,7 +347,7 @@ rules:
       headers:
         add:
           - name: "X-Forwarded-By"
-            value: "sentinel"
+            value: "zentinel"
         set:
           - name: "User-Agent"
             value: "transform-agent/1.0"
@@ -376,7 +376,7 @@ rules:
       headers:
         add:
           - name: "X-Served-By"
-            value: "sentinel"
+            value: "zentinel"
         remove:
           - "Server"
           - "X-Powered-By"
@@ -440,7 +440,7 @@ fn test_json_wrap_operation() {
 fn test_json_merge_operation() {
     let json_str = r#"{
         "operations": [
-            {"merge": {"path": "$.metadata", "with": {"processed": true, "source": "sentinel"}}}
+            {"merge": {"path": "$.metadata", "with": {"processed": true, "source": "zentinel"}}}
         ]
     }"#;
     let transform: JsonTransform = serde_json::from_str(json_str).unwrap();
@@ -731,7 +731,7 @@ version: "1"
 
 settings:
   max_body_size: 10485760
-  template_dir: "/etc/sentinel/templates"
+  template_dir: "/etc/zentinel/templates"
   cache_templates: true
   debug_headers: true
   timeout_ms: 100

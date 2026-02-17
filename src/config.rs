@@ -45,7 +45,7 @@ impl Default for Settings {
     fn default() -> Self {
         Self {
             max_body_size: 10 * 1024 * 1024, // 10MB
-            template_dir: "/etc/sentinel/templates".to_string(),
+            template_dir: "/etc/zentinel/templates".to_string(),
             cache_templates: true,
             debug_headers: false,
             timeout_ms: 100,

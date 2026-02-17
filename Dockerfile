@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.4
 
-# Sentinel Transform Agent Container Image
+# Zentinel Transform Agent Container Image
 #
 # Targets:
 #   - prebuilt: For CI with pre-built binaries
@@ -10,16 +10,16 @@
 ################################################################################
 FROM gcr.io/distroless/cc-debian12:nonroot AS prebuilt
 
-COPY sentinel-agent-transform /sentinel-agent-transform
+COPY zentinel-agent-transform /zentinel-agent-transform
 
-LABEL org.opencontainers.image.title="Sentinel Transform Agent" \
-      org.opencontainers.image.description="Sentinel Transform Agent for Sentinel reverse proxy" \
+LABEL org.opencontainers.image.title="Zentinel Transform Agent" \
+      org.opencontainers.image.description="Zentinel Transform Agent for Zentinel reverse proxy" \
       org.opencontainers.image.vendor="Raskell" \
-      org.opencontainers.image.source="https://github.com/raskell-io/sentinel-agent-transform"
+      org.opencontainers.image.source="https://github.com/zentinelproxy/zentinel-agent-transform"
 
-ENV RUST_LOG=info,sentinel_agent_transform=debug \
-    SOCKET_PATH=/var/run/sentinel/transform.sock
+ENV RUST_LOG=info,zentinel_agent_transform=debug \
+    SOCKET_PATH=/var/run/zentinel/transform.sock
 
 USER nonroot:nonroot
 
-ENTRYPOINT ["/sentinel-agent-transform"]
+ENTRYPOINT ["/zentinel-agent-transform"]

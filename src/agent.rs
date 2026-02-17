@@ -5,11 +5,11 @@ use crate::context::{RequestInfo, ResponseInfo, TransformContext};
 use crate::rule::{RuleEngine, RuleError};
 use crate::transformer::TransformResult;
 use async_trait::async_trait;
-use sentinel_agent_protocol::v2::{
+use zentinel_agent_protocol::v2::{
     AgentCapabilities, AgentFeatures, AgentHandlerV2, AgentLimits, CounterMetric, DrainReason,
     GaugeMetric, HealthStatus, MetricsReport, ShutdownReason,
 };
-use sentinel_agent_protocol::{
+use zentinel_agent_protocol::{
     AgentResponse, AuditMetadata, EventType, HeaderOp, RequestBodyChunkEvent,
     RequestHeadersEvent, ResponseBodyChunkEvent, ResponseHeadersEvent,
 };
@@ -20,7 +20,7 @@ use std::time::Instant;
 use tokio::sync::RwLock;
 use tracing::{debug, info, trace, warn};
 
-/// Transform Agent for Sentinel.
+/// Transform Agent for Zentinel.
 ///
 /// Provides request and response transformations based on configurable rules.
 pub struct TransformAgent {

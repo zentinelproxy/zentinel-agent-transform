@@ -1,6 +1,6 @@
-# Sentinel Transform Agent
+# Zentinel Transform Agent
 
-Request and response transformation agent for [Sentinel](https://sentinel.raskell.io) reverse proxy. Apply URL rewrites, header manipulation, and JSON body transformations based on configurable matching rules.
+Request and response transformation agent for [Zentinel](https://zentinelproxy.io) reverse proxy. Apply URL rewrites, header manipulation, and JSON body transformations based on configurable matching rules.
 
 ## Features
 
@@ -15,7 +15,7 @@ Request and response transformation agent for [Sentinel](https://sentinel.raskel
 ## Installation
 
 ```bash
-cargo install sentinel-agent-transform
+cargo install zentinel-agent-transform
 ```
 
 ## Quick Start
@@ -39,10 +39,10 @@ rules:
 Run the agent:
 
 ```bash
-sentinel-agent-transform --config transform.yaml --socket /tmp/transform.sock
+zentinel-agent-transform --config transform.yaml --socket /tmp/transform.sock
 ```
 
-Configure Sentinel to use the agent:
+Configure Zentinel to use the agent:
 
 ```kdl
 agents {
@@ -62,7 +62,7 @@ version: "1"
 
 settings:
   max_body_size: 10485760    # Max body size to process (default: 10MB)
-  template_dir: "/etc/sentinel/templates"
+  template_dir: "/etc/zentinel/templates"
   cache_templates: true
   debug_headers: false       # Add X-Transform-Rule and X-Transform-Time headers
   timeout_ms: 100
@@ -212,10 +212,10 @@ request:
   headers:
     add:                         # Add if not present
       - name: "X-Forwarded-By"
-        value: "sentinel"
+        value: "zentinel"
     set:                         # Always set (overwrite)
       - name: "User-Agent"
-        value: "sentinel-transform/1.0"
+        value: "zentinel-transform/1.0"
     remove:
       - "X-Debug-Mode"
       - "X-Internal-Token"
@@ -224,7 +224,7 @@ response:
   headers:
     add:
       - name: "X-Served-By"
-        value: "sentinel"
+        value: "zentinel"
     remove:
       - "Server"
       - "X-Powered-By"
@@ -419,10 +419,10 @@ rules:
 ## CLI Options
 
 ```
-sentinel-agent-transform [OPTIONS]
+zentinel-agent-transform [OPTIONS]
 
 Options:
-  -s, --socket <PATH>        Unix socket path [default: /tmp/sentinel-transform.sock]
+  -s, --socket <PATH>        Unix socket path [default: /tmp/zentinel-transform.sock]
   -c, --config <FILE>        Configuration file (YAML or JSON)
   -t, --template-dir <DIR>   Template directory
   -l, --log-level <LEVEL>    Log level: trace, debug, info, warn, error [default: info]
