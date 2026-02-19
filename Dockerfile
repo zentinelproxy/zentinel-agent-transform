@@ -10,7 +10,7 @@
 ################################################################################
 FROM gcr.io/distroless/cc-debian12:nonroot AS prebuilt
 
-COPY zentinel-agent-transform /zentinel-agent-transform
+COPY zentinel-transform-agent /zentinel-transform-agent
 
 LABEL org.opencontainers.image.title="Zentinel Transform Agent" \
       org.opencontainers.image.description="Zentinel Transform Agent for Zentinel reverse proxy" \
@@ -22,4 +22,4 @@ ENV RUST_LOG=info,zentinel_agent_transform=debug \
 
 USER nonroot:nonroot
 
-ENTRYPOINT ["/zentinel-agent-transform"]
+ENTRYPOINT ["/zentinel-transform-agent"]

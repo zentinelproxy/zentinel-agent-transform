@@ -39,7 +39,7 @@ rules:
 Run the agent:
 
 ```bash
-zentinel-agent-transform --config transform.yaml --socket /tmp/transform.sock
+zentinel-transform-agent --config transform.yaml --socket /tmp/transform.sock
 ```
 
 Configure Zentinel to use the agent:
@@ -419,7 +419,7 @@ rules:
 ## CLI Options
 
 ```
-zentinel-agent-transform [OPTIONS]
+zentinel-transform-agent [OPTIONS]
 
 Options:
   -s, --socket <PATH>        Unix socket path [default: /tmp/zentinel-transform.sock]
