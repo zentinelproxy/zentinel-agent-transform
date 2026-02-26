@@ -5,20 +5,20 @@ use crate::context::{RequestInfo, ResponseInfo, TransformContext};
 use crate::rule::{RuleEngine, RuleError};
 use crate::transformer::TransformResult;
 use async_trait::async_trait;
-use zentinel_agent_protocol::v2::{
-    AgentCapabilities, AgentFeatures, AgentHandlerV2, AgentLimits, CounterMetric, DrainReason,
-    GaugeMetric, HealthStatus, MetricsReport, ShutdownReason,
-};
-use zentinel_agent_protocol::{
-    AgentResponse, AuditMetadata, EventType, HeaderOp, RequestBodyChunkEvent,
-    RequestHeadersEvent, ResponseBodyChunkEvent, ResponseHeadersEvent,
-};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::RwLock;
 use tracing::{debug, info, trace, warn};
+use zentinel_agent_protocol::v2::{
+    AgentCapabilities, AgentFeatures, AgentHandlerV2, AgentLimits, CounterMetric, DrainReason,
+    GaugeMetric, HealthStatus, MetricsReport, ShutdownReason,
+};
+use zentinel_agent_protocol::{
+    AgentResponse, AuditMetadata, EventType, HeaderOp, RequestBodyChunkEvent, RequestHeadersEvent,
+    ResponseBodyChunkEvent, ResponseHeadersEvent,
+};
 
 /// Transform Agent for Zentinel.
 ///
@@ -268,33 +268,29 @@ fn parse_query_string(query: Option<&str>) -> HashMap<String, Vec<String>> {
 impl AgentHandlerV2 for TransformAgent {
     /// Return agent capabilities for v2 protocol.
     fn capabilities(&self) -> AgentCapabilities {
-        AgentCapabilities::new(
-            "transform",
-            "Transform Agent",
-            env!("CARGO_PKG_VERSION"),
-        )
-        .with_event(EventType::RequestHeaders)
-        .with_event(EventType::RequestBodyChunk)
-        .with_event(EventType::ResponseHeaders)
-        .with_event(EventType::ResponseBodyChunk)
-        .with_features(AgentFeatures {
-            streaming_body: true,
-            websocket: false,
-            guardrails: false,
-            config_push: true,
-            metrics_export: true,
-            concurrent_requests: 100,
-            cancellation: true,
-            flow_control: false,
-            health_reporting: true,
-        })
-        .with_limits(AgentLimits {
-            max_body_size: self.config.settings.max_body_size,
-            max_concurrency: 100,
-            preferred_chunk_size: 64 * 1024,
-            max_memory: None,
-            max_processing_time_ms: Some(self.config.settings.timeout_ms),
-        })
+        AgentCapabilities::new("transform", "Transform Agent", env!("CARGO_PKG_VERSION"))
+            .with_event(EventType::RequestHeaders)
+            .with_event(EventType::RequestBodyChunk)
+            .with_event(EventType::ResponseHeaders)
+            .with_event(EventType::ResponseBodyChunk)
+            .with_features(AgentFeatures {
+                streaming_body: true,
+                websocket: false,
+                guardrails: false,
+                config_push: true,
+                metrics_export: true,
+                concurrent_requests: 100,
+                cancellation: true,
+                flow_control: false,
+                health_reporting: true,
+            })
+            .with_limits(AgentLimits {
+                max_body_size: self.config.settings.max_body_size,
+                max_concurrency: 100,
+                preferred_chunk_size: 64 * 1024,
+                max_memory: None,
+                max_processing_time_ms: Some(self.config.settings.timeout_ms),
+            })
     }
 
     /// Handle request headers event.
@@ -762,11 +758,7 @@ mod tests {
         let params = parse_query_string(Some("tags=a&tags=b&tags=c"));
         assert_eq!(
             params.get("tags"),
-            Some(&vec![
-                "a".to_string(),
-                "b".to_string(),
-                "c".to_string()
-            ])
+            Some(&vec!["a".to_string(), "b".to_string(), "c".to_string()])
         );
     }
 

@@ -1,7 +1,7 @@
 //! Integration tests for the Transform Agent.
 
+use zentinel_agent_transform::config::{JsonTransform, PatternType};
 use zentinel_agent_transform::{TransformAgent, TransformConfig};
-use zentinel_agent_transform::config::{PatternType, JsonTransform};
 
 // =============================================================================
 // Configuration Parsing Tests
@@ -296,7 +296,13 @@ rules:
         preserve_query: true
 "#;
     let config: TransformConfig = serde_yaml::from_str(yaml).unwrap();
-    let url = config.rules[0].request.as_ref().unwrap().url.as_ref().unwrap();
+    let url = config.rules[0]
+        .request
+        .as_ref()
+        .unwrap()
+        .url
+        .as_ref()
+        .unwrap();
     assert_eq!(url.rewrite, "/api/v2/${1}");
     assert!(url.preserve_query);
 }
@@ -322,7 +328,13 @@ rules:
           - "internal"
 "#;
     let config: TransformConfig = serde_yaml::from_str(yaml).unwrap();
-    let url = config.rules[0].request.as_ref().unwrap().url.as_ref().unwrap();
+    let url = config.rules[0]
+        .request
+        .as_ref()
+        .unwrap()
+        .url
+        .as_ref()
+        .unwrap();
     let add_query = url.add_query.as_ref().unwrap();
     assert_eq!(add_query.get("version").unwrap(), "2");
     let remove_query = url.remove_query.as_ref().unwrap();
@@ -355,7 +367,13 @@ rules:
           - "X-Debug-Mode"
 "#;
     let config: TransformConfig = serde_yaml::from_str(yaml).unwrap();
-    let headers = config.rules[0].request.as_ref().unwrap().headers.as_ref().unwrap();
+    let headers = config.rules[0]
+        .request
+        .as_ref()
+        .unwrap()
+        .headers
+        .as_ref()
+        .unwrap();
     assert_eq!(headers.add.as_ref().unwrap().len(), 1);
     assert_eq!(headers.add.as_ref().unwrap()[0].name, "X-Forwarded-By");
     assert_eq!(headers.set.as_ref().unwrap().len(), 1);
@@ -382,7 +400,13 @@ rules:
           - "X-Powered-By"
 "#;
     let config: TransformConfig = serde_yaml::from_str(yaml).unwrap();
-    let headers = config.rules[0].response.as_ref().unwrap().headers.as_ref().unwrap();
+    let headers = config.rules[0]
+        .response
+        .as_ref()
+        .unwrap()
+        .headers
+        .as_ref()
+        .unwrap();
     assert_eq!(headers.add.as_ref().unwrap().len(), 1);
     assert_eq!(headers.remove.as_ref().unwrap().len(), 2);
 }
@@ -651,7 +675,13 @@ rules:
           client: "${request.client_ip}"
 "#;
     let config: TransformConfig = serde_yaml::from_str(yaml).unwrap();
-    let headers = config.rules[0].request.as_ref().unwrap().headers.as_ref().unwrap();
+    let headers = config.rules[0]
+        .request
+        .as_ref()
+        .unwrap()
+        .headers
+        .as_ref()
+        .unwrap();
     let add = headers.add.as_ref().unwrap();
     assert_eq!(add[0].value, "${correlation_id}");
     assert_eq!(add[1].value, "${request.method}");

@@ -52,21 +52,17 @@ impl HeaderMatcherImpl {
 #[async_trait]
 impl Matcher for HeaderMatcherImpl {
     async fn matches(&self, ctx: &TransformContext) -> MatchResult {
-        let header_value = ctx.request.headers
+        let header_value = ctx
+            .request
+            .headers
             .get(&self.name)
             .and_then(|v| v.first())
             .map(|s| s.as_str());
 
         let matched = match &self.condition {
-            HeaderCondition::Equals(expected) => {
-                header_value.is_some_and(|v| v == expected)
-            }
-            HeaderCondition::Contains(substr) => {
-                header_value.is_some_and(|v| v.contains(substr))
-            }
-            HeaderCondition::Matches(regex) => {
-                header_value.is_some_and(|v| regex.is_match(v))
-            }
+            HeaderCondition::Equals(expected) => header_value.is_some_and(|v| v == expected),
+            HeaderCondition::Contains(substr) => header_value.is_some_and(|v| v.contains(substr)),
+            HeaderCondition::Matches(regex) => header_value.is_some_and(|v| regex.is_match(v)),
             HeaderCondition::Present => header_value.is_some(),
             HeaderCondition::Absent => header_value.is_none(),
         };

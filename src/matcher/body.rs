@@ -27,7 +27,9 @@ enum JsonCheck {
 impl BodyMatcherImpl {
     /// Compile a body matcher from configuration.
     pub fn compile(config: &BodyMatcher) -> Result<Self, MatcherError> {
-        let conditions = config.json.as_ref()
+        let conditions = config
+            .json
+            .as_ref()
             .map(|conds| conds.iter().map(compile_condition).collect())
             .unwrap_or_default();
 
@@ -93,12 +95,10 @@ fn check_condition(json: &JsonValue, condition: &CompiledJsonCondition) -> bool 
 
     match &condition.check {
         JsonCheck::Equals(expected) => value == Some(expected),
-        JsonCheck::Contains(substr) => {
-            value.is_some_and(|v| match v {
-                JsonValue::String(s) => s.contains(substr),
-                _ => v.to_string().contains(substr),
-            })
-        }
+        JsonCheck::Contains(substr) => value.is_some_and(|v| match v {
+            JsonValue::String(s) => s.contains(substr),
+            _ => v.to_string().contains(substr),
+        }),
         JsonCheck::Exists => value.is_some(),
         JsonCheck::NotExists => value.is_none(),
     }
@@ -141,8 +141,7 @@ mod tests {
             headers: HashMap::new(),
             client_ip: "127.0.0.1".to_string(),
         };
-        TransformContext::new(request, "test".to_string())
-            .with_body_json(body)
+        TransformContext::new(request, "test".to_string()).with_body_json(body)
     }
 
     #[tokio::test]

@@ -1,14 +1,14 @@
 //! Request and response matchers.
 
-mod path;
-mod header;
 mod body;
+mod header;
+mod path;
 
-pub use path::PathMatcherImpl;
-pub use header::HeaderMatcherImpl;
 pub use body::BodyMatcherImpl;
+pub use header::HeaderMatcherImpl;
+pub use path::PathMatcherImpl;
 
-use crate::config::{RuleMatcher, ResponseMatcher};
+use crate::config::{ResponseMatcher, RuleMatcher};
 use crate::context::TransformContext;
 use async_trait::async_trait;
 use std::collections::HashMap;
@@ -81,22 +81,34 @@ pub struct CompiledResponseMatcher {
 impl CompiledMatcher {
     /// Compile a rule matcher from configuration.
     pub fn compile(config: &RuleMatcher) -> Result<Self, MatcherError> {
-        let path = config.path.as_ref()
+        let path = config
+            .path
+            .as_ref()
             .map(PathMatcherImpl::compile)
             .transpose()?;
 
         let methods = config.methods.clone();
 
-        let headers = config.headers.as_ref()
-            .map(|hs| hs.iter().map(HeaderMatcherImpl::compile).collect::<Result<Vec<_>, _>>())
+        let headers = config
+            .headers
+            .as_ref()
+            .map(|hs| {
+                hs.iter()
+                    .map(HeaderMatcherImpl::compile)
+                    .collect::<Result<Vec<_>, _>>()
+            })
             .transpose()?
             .unwrap_or_default();
 
-        let body = config.body.as_ref()
+        let body = config
+            .body
+            .as_ref()
             .map(BodyMatcherImpl::compile)
             .transpose()?;
 
-        let response = config.response.as_ref()
+        let response = config
+            .response
+            .as_ref()
             .map(CompiledResponseMatcher::compile);
 
         Ok(Self {

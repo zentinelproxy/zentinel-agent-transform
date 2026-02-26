@@ -4,15 +4,19 @@
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use zentinel_agent_protocol::v2::GrpcAgentServerV2;
-use zentinel_agent_transform::{TransformAgent, TransformConfig};
 use std::path::PathBuf;
 use tracing::info;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use zentinel_agent_protocol::v2::GrpcAgentServerV2;
+use zentinel_agent_transform::{TransformAgent, TransformConfig};
 
 #[derive(Parser, Debug)]
 #[command(name = "zentinel-agent-transform")]
-#[command(author, version, about = "Request/Response transformation agent for Zentinel")]
+#[command(
+    author,
+    version,
+    about = "Request/Response transformation agent for Zentinel"
+)]
 struct Args {
     /// Configuration file path (YAML or JSON)
     #[arg(short, long)]
@@ -100,8 +104,8 @@ async fn main() -> Result<()> {
     let args = Args::parse();
 
     // Initialize logging
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(&args.log_level));
+    let filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(&args.log_level));
 
     if args.json_logs {
         tracing_subscriber::registry()

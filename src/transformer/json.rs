@@ -21,7 +21,11 @@ impl JsonTransformer {
     }
 
     /// Apply all operations to a JSON value.
-    fn apply_operations(&self, mut json: JsonValue, ctx: &TransformContext) -> Result<JsonValue, TransformError> {
+    fn apply_operations(
+        &self,
+        mut json: JsonValue,
+        ctx: &TransformContext,
+    ) -> Result<JsonValue, TransformError> {
         for operation in &self.operations {
             json = self.apply_operation(json, operation, ctx)?;
         }
@@ -204,7 +208,11 @@ fn get_json_value_mut<'a>(json: &'a mut JsonValue, path: &str) -> Option<&'a mut
 }
 
 /// Set a JSON value at a path, creating intermediate objects as needed.
-fn set_json_value(json: &mut JsonValue, path: &str, value: JsonValue) -> Result<(), TransformError> {
+fn set_json_value(
+    json: &mut JsonValue,
+    path: &str,
+    value: JsonValue,
+) -> Result<(), TransformError> {
     let segments = parse_path(path);
 
     if segments.is_empty() {
@@ -224,9 +232,10 @@ fn set_json_value(json: &mut JsonValue, path: &str, value: JsonValue) -> Result<
                         map.insert(key.clone(), value.clone());
                         return Ok(());
                     } else {
-                        return Err(TransformError::JsonPath(
-                            format!("Cannot set key '{}' on non-object", key)
-                        ));
+                        return Err(TransformError::JsonPath(format!(
+                            "Cannot set key '{}' on non-object",
+                            key
+                        )));
                     }
                 } else {
                     // Ensure intermediate object exists
@@ -256,9 +265,10 @@ fn set_json_value(json: &mut JsonValue, path: &str, value: JsonValue) -> Result<
                         arr[*idx] = value.clone();
                         return Ok(());
                     } else {
-                        return Err(TransformError::JsonPath(
-                            format!("Cannot set index {} on non-array", idx)
-                        ));
+                        return Err(TransformError::JsonPath(format!(
+                            "Cannot set index {} on non-array",
+                            idx
+                        )));
                     }
                 } else {
                     current = current.get_mut(*idx).ok_or_else(|| {
@@ -386,8 +396,7 @@ mod tests {
         let mut captures = HashMap::new();
         captures.insert("version".to_string(), "2".to_string());
 
-        TransformContext::new(request, "test-123".to_string())
-            .with_captures(captures)
+        TransformContext::new(request, "test-123".to_string()).with_captures(captures)
     }
 
     #[tokio::test]
@@ -404,7 +413,10 @@ mod tests {
         let body_bytes = serde_json::to_vec(&body).unwrap();
 
         let ctx = make_context();
-        let result = transformer.transform(&ctx, Some(&body_bytes)).await.unwrap();
+        let result = transformer
+            .transform(&ctx, Some(&body_bytes))
+            .await
+            .unwrap();
 
         let output: JsonValue = serde_json::from_slice(&result.body.unwrap()).unwrap();
         assert_eq!(output["name"], "updated");
@@ -429,7 +441,10 @@ mod tests {
         let body_bytes = serde_json::to_vec(&body).unwrap();
 
         let ctx = make_context();
-        let result = transformer.transform(&ctx, Some(&body_bytes)).await.unwrap();
+        let result = transformer
+            .transform(&ctx, Some(&body_bytes))
+            .await
+            .unwrap();
 
         let output: JsonValue = serde_json::from_slice(&result.body.unwrap()).unwrap();
         assert_eq!(output["name"], "test");
@@ -451,7 +466,10 @@ mod tests {
         let body_bytes = serde_json::to_vec(&body).unwrap();
 
         let ctx = make_context();
-        let result = transformer.transform(&ctx, Some(&body_bytes)).await.unwrap();
+        let result = transformer
+            .transform(&ctx, Some(&body_bytes))
+            .await
+            .unwrap();
 
         let output: JsonValue = serde_json::from_slice(&result.body.unwrap()).unwrap();
         assert!(output.get("old_name").is_none());
@@ -473,7 +491,10 @@ mod tests {
         let body_bytes = serde_json::to_vec(&body).unwrap();
 
         let ctx = make_context();
-        let result = transformer.transform(&ctx, Some(&body_bytes)).await.unwrap();
+        let result = transformer
+            .transform(&ctx, Some(&body_bytes))
+            .await
+            .unwrap();
 
         let output: JsonValue = serde_json::from_slice(&result.body.unwrap()).unwrap();
         assert_eq!(output["data"]["name"], "test");
@@ -494,7 +515,10 @@ mod tests {
         let body_bytes = serde_json::to_vec(&body).unwrap();
 
         let ctx = make_context();
-        let result = transformer.transform(&ctx, Some(&body_bytes)).await.unwrap();
+        let result = transformer
+            .transform(&ctx, Some(&body_bytes))
+            .await
+            .unwrap();
 
         let output: JsonValue = serde_json::from_slice(&result.body.unwrap()).unwrap();
         assert_eq!(output["name"], "test");
@@ -516,7 +540,10 @@ mod tests {
         let body_bytes = serde_json::to_vec(&body).unwrap();
 
         let ctx = make_context();
-        let result = transformer.transform(&ctx, Some(&body_bytes)).await.unwrap();
+        let result = transformer
+            .transform(&ctx, Some(&body_bytes))
+            .await
+            .unwrap();
 
         let output: JsonValue = serde_json::from_slice(&result.body.unwrap()).unwrap();
         assert_eq!(output["source"], "value");
@@ -537,7 +564,10 @@ mod tests {
         let body_bytes = serde_json::to_vec(&body).unwrap();
 
         let ctx = make_context();
-        let result = transformer.transform(&ctx, Some(&body_bytes)).await.unwrap();
+        let result = transformer
+            .transform(&ctx, Some(&body_bytes))
+            .await
+            .unwrap();
 
         let output: JsonValue = serde_json::from_slice(&result.body.unwrap()).unwrap();
         assert!(output.get("source").is_none());
@@ -566,7 +596,10 @@ mod tests {
         let body_bytes = serde_json::to_vec(&body).unwrap();
 
         let ctx = make_context();
-        let result = transformer.transform(&ctx, Some(&body_bytes)).await.unwrap();
+        let result = transformer
+            .transform(&ctx, Some(&body_bytes))
+            .await
+            .unwrap();
 
         let output: JsonValue = serde_json::from_slice(&result.body.unwrap()).unwrap();
         assert_eq!(output["user"]["profile"]["name"], "updated");
@@ -587,7 +620,10 @@ mod tests {
         let body_bytes = serde_json::to_vec(&body).unwrap();
 
         let ctx = make_context();
-        let result = transformer.transform(&ctx, Some(&body_bytes)).await.unwrap();
+        let result = transformer
+            .transform(&ctx, Some(&body_bytes))
+            .await
+            .unwrap();
 
         let output: JsonValue = serde_json::from_slice(&result.body.unwrap()).unwrap();
         assert_eq!(output["items"][0], "a");
@@ -609,7 +645,10 @@ mod tests {
         let body_bytes = serde_json::to_vec(&body).unwrap();
 
         let ctx = make_context();
-        let result = transformer.transform(&ctx, Some(&body_bytes)).await.unwrap();
+        let result = transformer
+            .transform(&ctx, Some(&body_bytes))
+            .await
+            .unwrap();
 
         let output: JsonValue = serde_json::from_slice(&result.body.unwrap()).unwrap();
         assert_eq!(output["api_version"], "v2");
@@ -641,7 +680,10 @@ mod tests {
         let body_bytes = serde_json::to_vec(&body).unwrap();
 
         let ctx = make_context();
-        let result = transformer.transform(&ctx, Some(&body_bytes)).await.unwrap();
+        let result = transformer
+            .transform(&ctx, Some(&body_bytes))
+            .await
+            .unwrap();
 
         let output: JsonValue = serde_json::from_slice(&result.body.unwrap()).unwrap();
         assert_eq!(output["name"], "test");

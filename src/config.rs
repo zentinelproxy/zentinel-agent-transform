@@ -318,30 +318,18 @@ pub enum JsonOperation {
     /// Delete values at JSON paths
     Delete(Vec<String>),
     /// Rename a field
-    Rename {
-        from: String,
-        to: String,
-    },
+    Rename { from: String, to: String },
     /// Wrap a value in an object with a key
-    Wrap {
-        path: String,
-        key: String,
-    },
+    Wrap { path: String, key: String },
     /// Merge additional fields into an object
     Merge {
         path: String,
         with: serde_json::Value,
     },
     /// Copy a value from one path to another
-    Copy {
-        from: String,
-        to: String,
-    },
+    Copy { from: String, to: String },
     /// Move a value from one path to another
-    Move {
-        from: String,
-        to: String,
-    },
+    Move { from: String, to: String },
 }
 
 /// Content-Type conversion configuration.

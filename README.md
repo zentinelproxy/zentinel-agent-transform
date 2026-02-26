@@ -14,8 +14,30 @@ Request and response transformation agent for [Zentinel](https://zentinelproxy.i
 
 ## Installation
 
+### Using Bundle (Recommended)
+
+```bash
+# Install just this agent
+zentinel bundle install transform
+
+# Or install all bundled agents
+zentinel bundle install
+```
+
+The bundle command downloads the correct binary for your platform and places it in the standard location. See the [bundle documentation](https://zentinelproxy.io/docs/deployment/bundle/) for details.
+
+### Using Cargo
+
 ```bash
 cargo install zentinel-agent-transform
+```
+
+### From Source
+
+```bash
+git clone https://github.com/zentinelproxy/zentinel-agent-transform
+cd zentinel-agent-transform
+cargo build --release
 ```
 
 ## Quick Start

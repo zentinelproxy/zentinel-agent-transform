@@ -6,9 +6,7 @@ use std::collections::HashMap;
 use std::sync::LazyLock;
 
 /// Regex for matching variable expressions like ${...}
-static VAR_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"\$\{([^}]+)\}").unwrap()
-});
+static VAR_REGEX: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\$\{([^}]+)\}").unwrap());
 
 /// Context available during transformations.
 #[derive(Debug, Clone)]
@@ -145,10 +143,12 @@ impl TransformContext {
 
     /// Interpolate all ${...} variables in a string.
     pub fn interpolate(&self, template: &str) -> String {
-        VAR_REGEX.replace_all(template, |caps: &regex::Captures| {
-            let var_name = &caps[1];
-            self.resolve(var_name).unwrap_or_default()
-        }).to_string()
+        VAR_REGEX
+            .replace_all(template, |caps: &regex::Captures| {
+                let var_name = &caps[1];
+                self.resolve(var_name).unwrap_or_default()
+            })
+            .to_string()
     }
 
     fn resolve_request(&self, path: &str) -> Option<String> {
@@ -268,7 +268,8 @@ pub fn status_text(code: u16) -> String {
         503 => "Service Unavailable",
         504 => "Gateway Timeout",
         _ => "Unknown",
-    }.to_string()
+    }
+    .to_string()
 }
 
 #[cfg(test)]
@@ -277,7 +278,10 @@ mod tests {
 
     fn make_context() -> TransformContext {
         let mut headers = HashMap::new();
-        headers.insert("content-type".to_string(), vec!["application/json".to_string()]);
+        headers.insert(
+            "content-type".to_string(),
+            vec!["application/json".to_string()],
+        );
         headers.insert("x-custom".to_string(), vec!["custom-value".to_string()]);
 
         let mut query_params = HashMap::new();
@@ -317,10 +321,19 @@ mod tests {
         let ctx = make_context();
 
         assert_eq!(ctx.resolve("request.method"), Some("GET".to_string()));
-        assert_eq!(ctx.resolve("request.path"), Some("/api/users/123".to_string()));
+        assert_eq!(
+            ctx.resolve("request.path"),
+            Some("/api/users/123".to_string())
+        );
         assert_eq!(ctx.resolve("request.query"), Some("page=1".to_string()));
-        assert_eq!(ctx.resolve("request.client_ip"), Some("192.168.1.1".to_string()));
-        assert_eq!(ctx.resolve("request.header.x-custom"), Some("custom-value".to_string()));
+        assert_eq!(
+            ctx.resolve("request.client_ip"),
+            Some("192.168.1.1".to_string())
+        );
+        assert_eq!(
+            ctx.resolve("request.header.x-custom"),
+            Some("custom-value".to_string())
+        );
     }
 
     #[test]
@@ -361,6 +374,9 @@ mod tests {
     #[test]
     fn test_correlation_id() {
         let ctx = make_context();
-        assert_eq!(ctx.resolve("correlation_id"), Some("test-correlation-id".to_string()));
+        assert_eq!(
+            ctx.resolve("correlation_id"),
+            Some("test-correlation-id".to_string())
+        );
     }
 }

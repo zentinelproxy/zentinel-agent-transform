@@ -66,13 +66,7 @@ impl Transformer for UrlTransformer {
         if !query_parts.is_empty() {
             let query_string: String = query_parts
                 .iter()
-                .map(|(k, v)| {
-                    format!(
-                        "{}={}",
-                        urlencoding::encode(k),
-                        urlencoding::encode(v)
-                    )
-                })
+                .map(|(k, v)| format!("{}={}", urlencoding::encode(k), urlencoding::encode(v)))
                 .collect::<Vec<_>>()
                 .join("&");
             new_path = format!("{}?{}", new_path, query_string);
@@ -96,7 +90,8 @@ mod tests {
         if let Some(qs) = query {
             for part in qs.split('&') {
                 if let Some((k, v)) = part.split_once('=') {
-                    query_params.entry(k.to_string())
+                    query_params
+                        .entry(k.to_string())
                         .or_insert_with(Vec::new)
                         .push(v.to_string());
                 }
@@ -118,8 +113,7 @@ mod tests {
         captures.insert("1".to_string(), "users".to_string());
         captures.insert("2".to_string(), "123".to_string());
 
-        TransformContext::new(request, "test".to_string())
-            .with_captures(captures)
+        TransformContext::new(request, "test".to_string()).with_captures(captures)
     }
 
     #[tokio::test]

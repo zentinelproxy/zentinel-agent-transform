@@ -18,17 +18,23 @@ pub struct HeaderTransformer {
 impl HeaderTransformer {
     /// Create a new header transformer from configuration.
     pub fn new(config: &HeaderTransform) -> Self {
-        let add = config.add.as_ref()
+        let add = config
+            .add
+            .as_ref()
             .map(|headers| {
-                headers.iter()
+                headers
+                    .iter()
                     .map(|h| (h.name.clone(), h.value.clone()))
                     .collect()
             })
             .unwrap_or_default();
 
-        let set = config.set.as_ref()
+        let set = config
+            .set
+            .as_ref()
             .map(|headers| {
-                headers.iter()
+                headers
+                    .iter()
                     .map(|h| (h.name.clone(), h.value.clone()))
                     .collect()
             })
@@ -85,7 +91,10 @@ mod tests {
 
     fn make_context() -> TransformContext {
         let mut headers = HashMap::new();
-        headers.insert("content-type".to_string(), vec!["application/json".to_string()]);
+        headers.insert(
+            "content-type".to_string(),
+            vec!["application/json".to_string()],
+        );
 
         let request = RequestInfo {
             method: "GET".to_string(),
@@ -99,19 +108,16 @@ mod tests {
         let mut captures = HashMap::new();
         captures.insert("version".to_string(), "2".to_string());
 
-        TransformContext::new(request, "test-123".to_string())
-            .with_captures(captures)
+        TransformContext::new(request, "test-123".to_string()).with_captures(captures)
     }
 
     #[tokio::test]
     async fn test_add_headers() {
         let config = HeaderTransform {
-            add: Some(vec![
-                HeaderValue {
-                    name: "X-Custom".to_string(),
-                    value: "value".to_string(),
-                },
-            ]),
+            add: Some(vec![HeaderValue {
+                name: "X-Custom".to_string(),
+                value: "value".to_string(),
+            }]),
             set: None,
             remove: None,
         };
@@ -121,7 +127,10 @@ mod tests {
         let result = transformer.transform(&ctx, None).await.unwrap();
 
         assert_eq!(result.add_headers.len(), 1);
-        assert_eq!(result.add_headers[0], ("X-Custom".to_string(), "value".to_string()));
+        assert_eq!(
+            result.add_headers[0],
+            ("X-Custom".to_string(), "value".to_string())
+        );
     }
 
     #[tokio::test]

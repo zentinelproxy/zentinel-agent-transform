@@ -157,7 +157,10 @@ mod tests {
         assert!(result.matched);
         assert_eq!(result.captures.get("resource"), Some(&"users".to_string()));
         assert_eq!(result.captures.get("id"), Some(&"123".to_string()));
-        assert_eq!(result.captures.get("0"), Some(&"/api/v1/users/123".to_string()));
+        assert_eq!(
+            result.captures.get("0"),
+            Some(&"/api/v1/users/123".to_string())
+        );
     }
 
     #[tokio::test]
