@@ -15,7 +15,7 @@ zentinel-agent-protocol = "0.5"
 
 # Async runtime
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal", "sync", "time", "net", "io-util"] }
-tonic = "0.12"
+tonic = "0.14"
 async-trait = "0.1"
 
 # Serialization
