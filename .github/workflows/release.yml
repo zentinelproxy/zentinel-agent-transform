@@ -46,6 +46,17 @@ jobs:
           repository: zentinelproxy/zentinel-agent-rust-sdk
           path: zentinel-agent-rust-sdk
 
+      - name: Check that the tag matches Cargo.toml
+        working-directory: agent
+        run: |
+          tag="${{ inputs.version }}"
+          [ -n "$tag" ] || tag="${GITHUB_REF#refs/tags/v}"
+          crate=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          if [ "$tag" != "$crate" ]; then
+            echo "::error::Releasing $tag, but Cargo.toml says $crate. Bump Cargo.toml first."
+            exit 1
+          fi
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:

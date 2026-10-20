@@ -7,7 +7,7 @@ use clap::Parser;
 use std::path::PathBuf;
 use tracing::info;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
-use zentinel_agent_protocol::v2::GrpcAgentServerV2;
+use zentinel_agent_protocol::v2::{GrpcAgentServerV2, UdsAgentServerV2};
 use zentinel_agent_transform::{TransformAgent, TransformConfig};
 
 #[derive(Parser, Debug)]
@@ -26,8 +26,13 @@ struct Args {
     #[arg(long, default_value = "/etc/zentinel/templates")]
     template_dir: PathBuf,
 
+    /// Unix socket path to listen on. If provided, uses UDS transport
+    /// instead of gRPC.
+    #[arg(short, long, env = "TRANSFORM_SOCKET", conflicts_with = "grpc_address")]
+    socket: Option<PathBuf>,
+
     /// gRPC address to listen on (e.g., "0.0.0.0:50051").
-    /// Defaults to "0.0.0.0:50051" if not specified.
+    /// Defaults to "0.0.0.0:50051" if neither this nor --socket is given.
     #[arg(long, env = "TRANSFORM_GRPC_ADDRESS")]
     grpc_address: Option<String>,
 
@@ -156,6 +161,25 @@ async fn main() -> Result<()> {
     let agent = TransformAgent::new(config)?;
 
     info!("Transform agent initialized");
+
+    if let Some(socket) = args.socket {
+        info!(
+            config = ?args.config,
+            socket = %socket.display(),
+            "Starting Zentinel Transform Agent (UDS v2)"
+        );
+
+        let server = UdsAgentServerV2::new("transform", socket, Box::new(agent));
+
+        info!("Transform agent ready and listening on UDS");
+
+        server
+            .run()
+            .await
+            .context("Failed to run Transform Agent UDS server")?;
+
+        return Ok(());
+    }
 
     // Determine gRPC address
     let grpc_addr = args

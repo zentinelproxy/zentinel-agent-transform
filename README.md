@@ -463,14 +463,21 @@ rules:
 zentinel-transform-agent [OPTIONS]
 
 Options:
-  -s, --socket <PATH>        Unix socket path [default: /tmp/zentinel-transform.sock]
-  -c, --config <FILE>        Configuration file (YAML or JSON)
-  -t, --template-dir <DIR>   Template directory
-  -l, --log-level <LEVEL>    Log level: trace, debug, info, warn, error [default: info]
-      --json-logs            Output logs in JSON format
-  -h, --help                 Print help
-  -V, --version              Print version
+  -c, --config <FILE>          Configuration file (YAML or JSON)
+      --template-dir <DIR>     Template directory [default: /etc/zentinel/templates]
+  -s, --socket <PATH>          Listen on this Unix socket (UDS) [env: TRANSFORM_SOCKET]
+      --grpc-address <ADDR>    Listen for gRPC on this address [env: TRANSFORM_GRPC_ADDRESS]
+      --json-logs              Output logs as JSON
+      --log-level <LEVEL>      Log level: trace, debug, info, warn, error [default: info]
+      --example-config         Print an example configuration and exit
+      --validate               Validate the configuration and exit
+  -h, --help                   Print help
+  -V, --version                Print version
 ```
+
+`--socket` and `--grpc-address` are mutually exclusive. With neither, the agent
+listens for gRPC on `0.0.0.0:50051`. For gRPC, point Zentinel at it with
+`grpc "http://127.0.0.1:50051"` instead of `unix-socket`.
 
 ## Debug Mode
 
