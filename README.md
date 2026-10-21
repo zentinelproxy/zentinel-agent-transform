@@ -1,497 +1,219 @@
-# Zentinel Transform Agent
+<p align="center">
+  <a href="https://zentinelproxy.io">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/zentinelproxy/design/main/marks/lockup/zentinel-lockup-dark.svg">
+      <img alt="Zentinel" src="https://raw.githubusercontent.com/zentinelproxy/design/main/marks/lockup/zentinel-lockup-light.svg" height="52">
+    </picture>
+  </a>
+</p>
 
-Request and response transformation agent for [Zentinel](https://zentinelproxy.io) reverse proxy. Apply URL rewrites, header manipulation, and JSON body transformations based on configurable matching rules.
+<h3 align="center">Transform agent</h3>
 
-## Features
+<p align="center">Rule-based request and response header rewriting, matched on path, method, headers and query, with values interpolated from the request.</p>
 
-- **URL Rewriting**: Path rewriting with regex capture groups, query parameter manipulation
-- **Header Transformation**: Add, set, or remove headers on requests and responses
-- **JSON Body Transformation**: Set, delete, rename, wrap, merge, copy, move operations
-- **Flexible Matching**: Path patterns (exact/glob/regex), methods, headers, query params, JSON body
-- **Variable Interpolation**: Use request/response properties, captures, JSON paths in transformations
-- **Priority-Based Rules**: Higher priority rules evaluated first, first match wins
-- **Debug Mode**: Optional headers showing which rule matched and timing
+<p align="center">
+  <a href="https://github.com/zentinelproxy/zentinel-agent-transform/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/zentinelproxy/zentinel-agent-transform/actions/workflows/ci.yml/badge.svg"></a>
+  <img alt="Agent protocol: v2" src="https://img.shields.io/badge/agent%20protocol-v2-f68d31?style=flat&labelColor=1f161e">
+</p>
 
-## Installation
+<p align="center">
+  <a href="https://registry.zentinelproxy.io/transform/">Registry</a> &middot;
+  <a href="https://docs.zentinelproxy.io">Docs</a> &middot;
+  <a href="https://github.com/zentinelproxy">All repositories</a>
+</p>
 
-### Using Bundle (Recommended)
+The agent reads a YAML or JSON file of rules. On each request it takes the
+first enabled rule (highest `priority` first) whose matchers all pass, sets
+and removes request headers, and remembers the rule so the same rule's
+response section can set and remove response headers. A rule that fails to
+apply lets the request through unchanged; if the agent is unreachable, the
+filter's `failure-mode` decides.
+
+What works today, checked end to end against `zentinel`: request and response
+header `set` / `add` / `remove`, all matchers except `body`, interpolation,
+and the debug headers. What does **not** work yet is listed under
+[Limitations](#limitations): URL rewriting, body transformation, method and
+status overrides, and response-only rules.
+
+## Quick start
 
 ```bash
-# Install just this agent
 zentinel bundle install transform
 
-# Or install all bundled agents
-zentinel bundle install
+cat > transform.yaml <<'EOF'
+version: "1"
+rules:
+  - name: api-headers
+    match:
+      path:
+        pattern: "^/api/(?P<resource>[^/]+)"
+        type: regex
+    request:
+      headers:
+        set:
+          - name: X-Resource
+            value: "${resource}"
+        remove:
+          - X-Debug
+    response:
+      headers:
+        set:
+          - name: X-Content-Type-Options
+            value: nosniff
+        remove:
+          - Server
+EOF
+
+zentinel-transform-agent --config transform.yaml --validate
+zentinel-transform-agent --config transform.yaml --grpc-address 127.0.0.1:50051
 ```
 
-The bundle command downloads the correct binary for your platform and places it in the standard location. See the [bundle documentation](https://docs.zentinelproxy.io/deployment/bundle/) for details.
+```kdl
+system {
+    worker-threads 0
+}
 
-### Using Cargo
+listeners {
+    listener "http" {
+        address "127.0.0.1:8080"
+        protocol "http"
+    }
+}
 
-`zentinel-agent-transform` is not published on crates.io, so `cargo install zentinel-agent-transform` does not
-work. Install straight from the repository instead:
+agents {
+    agent "transform" type="custom" {
+        grpc "http://127.0.0.1:50051"
+        events "request_headers" "response_headers"
+        timeout-ms 100
+    }
+}
+
+filters {
+    filter "transform" {
+        type "agent"
+        agent "transform"
+        failure-mode "closed"
+    }
+}
+
+routes {
+    route "default" {
+        matches {
+            path-prefix "/"
+        }
+        upstream "backend"
+        filters "transform"
+    }
+}
+
+upstreams {
+    upstream "backend" {
+        target "127.0.0.1:3000"
+    }
+}
+```
+
+Release 0.4.0 listens on gRPC only. `main` adds `--socket` for a Unix
+socket (then use `unix-socket "/var/run/zentinel/transform.sock"` in the
+agent block).
+
+## Install
+
+```bash
+zentinel bundle install transform
+```
+
+Or from the repository (the crate is not on crates.io):
 
 ```bash
 cargo install --git https://github.com/zentinelproxy/zentinel-agent-transform
 ```
 
-This builds and installs the `zentinel-transform-agent` binary.
-
-### Prebuilt Binaries
-
-Each [release](https://github.com/zentinelproxy/zentinel-agent-transform/releases) ships binaries
-for `linux-x86_64`, `linux-aarch64`, and `darwin-aarch64`:
-
-```bash
-VERSION=0.4.0
-PLATFORM=linux-x86_64   # or linux-aarch64, darwin-aarch64
-curl -fsSL -o zentinel-transform-agent.tar.gz \
-  "https://github.com/zentinelproxy/zentinel-agent-transform/releases/download/v${VERSION}/zentinel-transform-agent-${VERSION}-${PLATFORM}.tar.gz"
-tar -xzf zentinel-transform-agent.tar.gz
-sudo install -m 0755 zentinel-transform-agent /usr/local/bin/
-```
-
-### From Source
-
-```bash
-git clone https://github.com/zentinelproxy/zentinel-agent-transform
-cd zentinel-agent-transform
-cargo build --release
-```
-
-## Quick Start
-
-Create a configuration file `transform.yaml`:
-
-```yaml
-version: "1"
-
-rules:
-  - name: "api-v1-to-v2"
-    match:
-      path:
-        pattern: "^/api/v1/(.*)$"
-        type: regex
-    request:
-      url:
-        rewrite: "/api/v2/${1}"
-```
-
-Run the agent:
-
-```bash
-zentinel-transform-agent --config transform.yaml --socket /tmp/transform.sock
-```
-
-Configure Zentinel to use the agent:
-
-```kdl
-agents {
-    agent "transform" type="custom" {
-        unix-socket path="/tmp/transform.sock"
-        events "request_headers" "request_body" "response_headers" "response_body"
-    }
-}
-```
+Release binaries (`zentinel-transform-agent-<version>-<platform>.tar.gz`) for
+`linux-x86_64`, `linux-aarch64` and `darwin-aarch64` are on the
+[releases page](https://github.com/zentinelproxy/zentinel-agent-transform/releases).
+From source: `cargo build --release`.
 
 ## Configuration
 
+| Option | Default | Meaning |
+|---|---|---|
+| `--config`, `-c` | none (no rules) | Rules file; `.yaml`/`.yml` is read as YAML, anything else as JSON |
+| `--grpc-address` / `TRANSFORM_GRPC_ADDRESS` | `0.0.0.0:50051` | gRPC listen address |
+| `--socket`, `-s` / `TRANSFORM_SOCKET` | none | Listen on a Unix socket instead of gRPC (`main` only, unreleased) |
+| `--validate` | | Parse the file, compile the patterns and exit |
+| `--example-config` | | Print an example file and exit |
+| `--log-level` | `info` | Log level (`RUST_LOG` takes precedence) |
+| `--json-logs` | `false` | JSON log output |
+| `--template-dir` | `/etc/zentinel/templates` | Overrides `settings.template_dir` (templates are not applied, see below) |
+
+The default listen address is all interfaces; bind it to `127.0.0.1` unless
+the proxy runs on another host. The file is read once at startup. The proxy
+does not forward an agent block's `config { }` to the agent, so use the file.
+
 ### Settings
 
-```yaml
-version: "1"
+| Key | Default | Meaning |
+|---|---|---|
+| `settings.debug_headers` | `false` | Add `X-Transform-Rule` and `X-Transform-Time` to the response |
+| `settings.max_body_size` | `10485760` | Body size the agent advertises to the proxy |
+| `settings.timeout_ms` | `100` | Processing time the agent advertises to the proxy |
 
-settings:
-  max_body_size: 10485760    # Max body size to process (default: 10MB)
-  template_dir: "/etc/zentinel/templates"
-  cache_templates: true
-  debug_headers: false       # Add X-Transform-Rule and X-Transform-Time headers
-  timeout_ms: 100
+### Rules
+
+| Key | Default | Meaning |
+|---|---|---|
+| `name` | required | Rule name, used in logs and `X-Transform-Rule` |
+| `enabled` | `true` | Skip the rule when `false` |
+| `priority` | `50` | Higher is tried first; the first matching rule wins |
+| `match.path` | any | `pattern` plus `type`: `regex` (default; numbered and named captures), `exact` or `glob` (Rust `glob` syntax, `*` also matches `/`) |
+| `match.methods` | any | List of methods |
+| `match.headers` | any | List of `name` plus one of `equals`, `contains`, `matches` (regex), `present: true`, `absent: true` |
+| `match.query` | any | List of `name` plus `equals`, `contains` or `present: true` |
+| `request.headers` | none | `set` / `add` (both overwrite) as lists of `name`/`value`, `remove` as a list of names |
+| `response.headers` | none | The same, applied to the response |
+
+Header values are interpolated: `${1}` or `${name}` for path captures,
+`${request.method}`, `${request.path}`, `${request.query}`,
+`${request.client_ip}`, `${request.header.<name>}`,
+`${request.query_param.<name>}`, `${response.status}`,
+`${response.header.<name>}`, `${correlation_id}` and `${now}` (RFC 3339). An
+unknown variable becomes an empty string.
+
+## Limitations
+
+These keys parse and pass `--validate`, but have no effect on the request:
+
+- `request.url` (`rewrite`, `add_query`, `remove_query`): the path is not
+  rewritten. The agent sends the rewritten URL upstream in an
+  `X-Original-Path` request header and the proxy routes the original path.
+- `request.body` and `response.body` (`json` operations, `convert`, `clear`,
+  `replace`): the new body is computed and discarded. `match.body` is only
+  evaluated in that discarded body phase.
+- `request.method`, `response.status`, `response.template`.
+- A rule with only a `response` section never fires: the response phase runs
+  only for requests where a rule with a `request` section matched.
+
+## Development
+
+```bash
+cargo test
+cargo clippy --all-targets -- -D warnings
 ```
 
-### Rule Structure
-
-```yaml
-rules:
-  - name: "rule-name"           # Unique identifier
-    description: "..."          # Optional description
-    enabled: true               # Enable/disable rule
-    priority: 100               # Higher = evaluated first
-
-    match:                      # Conditions (all must pass)
-      path: { ... }
-      methods: [...]
-      headers: [...]
-      query: [...]
-      body: [...]
-      response: { ... }
-
-    request:                    # Request transformations
-      url: { ... }
-      headers: { ... }
-      body: { ... }
-
-    response:                   # Response transformations
-      status: 200
-      headers: { ... }
-      body: { ... }
-```
-
-## Matchers
-
-### Path Matching
-
-```yaml
-match:
-  path:
-    pattern: "/api/users"
-    type: exact                 # exact, glob, or regex
-```
-
-```yaml
-match:
-  path:
-    pattern: "/api/*/items"
-    type: glob                  # Wildcards: * (segment), ** (multi-segment)
-```
-
-```yaml
-match:
-  path:
-    pattern: "^/api/v(\\d+)/(?P<resource>.*)$"
-    type: regex                 # Capture groups: ${1}, ${resource}
-```
-
-### Method Matching
-
-```yaml
-match:
-  methods: ["GET", "POST", "PUT"]
-```
-
-### Header Matching
-
-```yaml
-match:
-  headers:
-    - name: "Content-Type"
-      equals: "application/json"
-
-    - name: "Authorization"
-      contains: "Bearer"
-
-    - name: "X-Api-Key"
-      pattern: "^key-[a-z0-9]+$"
-
-    - name: "X-Request-Id"
-      present: true
-
-    - name: "X-Debug"
-      absent: true
-```
-
-### Query Parameter Matching
-
-```yaml
-match:
-  query:
-    - name: "api_key"
-      present: true
-
-    - name: "format"
-      equals: "json"
-
-    - name: "search"
-      contains: "test"
-```
-
-### Body Matching (JSON)
-
-```yaml
-match:
-  body:
-    - path: "$.type"
-      equals: "order"
-
-    - path: "$.items"
-      exists: true
-
-    - path: "$.metadata.source"
-      contains: "mobile"
-```
-
-### Response Matching
-
-```yaml
-match:
-  response:
-    status: [200, 201]
-    content_type: "application/json"
-```
-
-## Transformers
-
-### URL Transformation
-
-```yaml
-request:
-  url:
-    rewrite: "/api/v2/${1}"     # Path with captures
-    preserve_query: true         # Keep original query params
-    add_query:
-      version: "2"
-      trace: "${correlation_id}"
-    remove_query:
-      - "debug"
-      - "internal"
-```
-
-### Header Transformation
-
-```yaml
-request:
-  headers:
-    add:                         # Add if not present
-      - name: "X-Forwarded-By"
-        value: "zentinel"
-    set:                         # Always set (overwrite)
-      - name: "User-Agent"
-        value: "zentinel-transform/1.0"
-    remove:
-      - "X-Debug-Mode"
-      - "X-Internal-Token"
-
-response:
-  headers:
-    add:
-      - name: "X-Served-By"
-        value: "zentinel"
-    remove:
-      - "Server"
-      - "X-Powered-By"
-```
-
-### JSON Body Transformation
-
-```yaml
-request:
-  body:
-    json:
-      operations:
-        # Set a value at path
-        - set:
-            path: "$.api_version"
-            value: "v2"
-
-        # Set with interpolation
-        - set:
-            path: "$.request_id"
-            value: "${correlation_id}"
-
-        # Delete paths
-        - delete:
-            - "$.debug"
-            - "$.internal_flags"
-
-        # Rename field
-        - rename:
-            from: "$.userId"
-            to: "$.user_id"
-
-        # Wrap in parent object
-        - wrap:
-            path: "$"
-            key: "data"
-
-        # Merge additional fields
-        - merge:
-            path: "$.metadata"
-            with:
-              processed: true
-              timestamp: "${now}"
-
-        # Copy value to another path
-        - copy:
-            from: "$.user.id"
-            to: "$.audit.user_id"
-
-        # Move value to another path
-        - move:
-            from: "$.temp_field"
-            to: "$.permanent_field"
-```
-
-## Variable Interpolation
-
-Variables can be used in URL rewrites, header values, and JSON values:
-
-| Variable | Description |
-|----------|-------------|
-| `${request.method}` | HTTP method |
-| `${request.path}` | Request path |
-| `${request.query}` | Query string |
-| `${request.header.X-Name}` | Request header value |
-| `${request.query_param.name}` | Query parameter value |
-| `${request.client_ip}` | Client IP address |
-| `${response.status}` | Response status code |
-| `${response.header.X-Name}` | Response header value |
-| `${1}`, `${2}`, ... | Regex numbered capture groups |
-| `${name}` | Regex named capture group |
-| `${body.path.to.field}` | Request body JSON path |
-| `${response_body.field}` | Response body JSON path |
-| `${correlation_id}` | Unique request ID |
-| `${now}` | Current timestamp (ISO 8601) |
-
-## Examples
-
-### API Version Migration
-
-```yaml
-rules:
-  - name: "v1-to-v2-migration"
-    priority: 100
-    match:
-      path:
-        pattern: "^/api/v1/(.*)$"
-        type: regex
-    request:
-      url:
-        rewrite: "/api/v2/${1}"
-        preserve_query: true
-      headers:
-        add:
-          - name: "X-API-Version"
-            value: "2"
-```
-
-### Add Authentication Headers
-
-```yaml
-rules:
-  - name: "inject-internal-auth"
-    match:
-      path:
-        pattern: "/internal/*"
-        type: glob
-    request:
-      headers:
-        add:
-          - name: "X-Internal-Token"
-            value: "secret-token"
-          - name: "X-Request-Id"
-            value: "${correlation_id}"
-```
-
-### Response Sanitization
-
-```yaml
-rules:
-  - name: "sanitize-response"
-    match:
-      path:
-        pattern: "/api/.*"
-        type: regex
-      response:
-        content_type: "application/json"
-    response:
-      headers:
-        remove:
-          - "Server"
-          - "X-Powered-By"
-      body:
-        json:
-          operations:
-            - delete:
-                - "$.debug"
-                - "$.internal_id"
-                - "$.stack_trace"
-```
-
-### Request Normalization
-
-```yaml
-rules:
-  - name: "normalize-user-payload"
-    match:
-      path:
-        pattern: "/users"
-        type: exact
-      methods: ["POST", "PUT"]
-    request:
-      body:
-        json:
-          operations:
-            - rename:
-                from: "$.firstName"
-                to: "$.first_name"
-            - rename:
-                from: "$.lastName"
-                to: "$.last_name"
-            - set:
-                path: "$.normalized"
-                value: true
-```
-
-### Conditional Response Wrapping
-
-```yaml
-rules:
-  - name: "wrap-api-response"
-    match:
-      path:
-        pattern: "/api/.*"
-        type: regex
-      response:
-        status: [200]
-    response:
-      body:
-        json:
-          operations:
-            - wrap:
-                path: "$"
-                key: "data"
-            - merge:
-                path: "$"
-                with:
-                  success: true
-                  timestamp: "${now}"
-```
-
-## CLI Options
-
-```
-zentinel-transform-agent [OPTIONS]
-
-Options:
-  -c, --config <FILE>          Configuration file (YAML or JSON)
-      --template-dir <DIR>     Template directory [default: /etc/zentinel/templates]
-  -s, --socket <PATH>          Listen on this Unix socket (UDS) [env: TRANSFORM_SOCKET]
-      --grpc-address <ADDR>    Listen for gRPC on this address [env: TRANSFORM_GRPC_ADDRESS]
-      --json-logs              Output logs as JSON
-      --log-level <LEVEL>      Log level: trace, debug, info, warn, error [default: info]
-      --example-config         Print an example configuration and exit
-      --validate               Validate the configuration and exit
-  -h, --help                   Print help
-  -V, --version                Print version
-```
-
-`--socket` and `--grpc-address` are mutually exclusive. With neither, the agent
-listens for gRPC on `0.0.0.0:50051`. For gRPC, point Zentinel at it with
-`grpc "http://127.0.0.1:50051"` instead of `unix-socket`.
-
-## Debug Mode
-
-Enable debug headers to see transformation info:
-
-```yaml
-settings:
-  debug_headers: true
-```
-
-Response will include:
-- `X-Transform-Rule: <rule-name>` - Which rule matched
-- `X-Transform-Time: <ms>` - Processing time in milliseconds
+## Related
+
+- [Registry page](https://registry.zentinelproxy.io/transform/)
+- [Agent configuration](https://docs.zentinelproxy.io/configuration/agents/)
+- [Agent protocol v2](https://docs.zentinelproxy.io/agents/v2/)
+- [Zentinel](https://github.com/zentinelproxy/zentinel)
 
 ## License
 
-Apache-2.0
+Apache-2.0, as declared in `Cargo.toml`. The repository has no `LICENSE` file yet.
+
+---
+
+<p align="center">
+  <sub>Part of <a href="https://zentinelproxy.io">Zentinel</a>, the security-first reverse proxy. The shisa guards the gate.</sub>
+</p>
