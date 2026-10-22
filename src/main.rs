@@ -11,7 +11,7 @@ use zentinel_agent_protocol::v2::{GrpcAgentServerV2, UdsAgentServerV2};
 use zentinel_agent_transform::{TransformAgent, TransformConfig};
 
 #[derive(Parser, Debug)]
-#[command(name = "zentinel-agent-transform")]
+#[command(name = "zentinel-transform-agent")]
 #[command(
     author,
     version,
@@ -22,17 +22,23 @@ struct Args {
     #[arg(short, long)]
     config: Option<PathBuf>,
 
-    /// Template directory path
-    #[arg(long, default_value = "/etc/zentinel/templates")]
-    template_dir: PathBuf,
+    /// Template directory path. Overrides `settings.template_dir` from the
+    /// configuration file (default `/etc/zentinel/templates`).
+    #[arg(long)]
+    template_dir: Option<PathBuf>,
 
-    /// Unix socket path to listen on. If provided, uses UDS transport
-    /// instead of gRPC.
-    #[arg(short, long, env = "TRANSFORM_SOCKET", conflicts_with = "grpc_address")]
-    socket: Option<PathBuf>,
+    /// Unix socket to listen on (agent protocol v2 over UDS). Used unless
+    /// `--grpc-address` is given.
+    #[arg(
+        short,
+        long,
+        default_value = "/tmp/zentinel-transform.sock",
+        env = "TRANSFORM_SOCKET"
+    )]
+    socket: PathBuf,
 
-    /// gRPC address to listen on (e.g., "0.0.0.0:50051").
-    /// Defaults to "0.0.0.0:50051" if neither this nor --socket is given.
+    /// gRPC address to listen on (e.g. "127.0.0.1:50051"). When given, the
+    /// agent serves agent protocol v2 over gRPC instead of the Unix socket.
     #[arg(long, env = "TRANSFORM_GRPC_ADDRESS")]
     grpc_address: Option<String>,
 
@@ -147,7 +153,9 @@ async fn main() -> Result<()> {
     };
 
     // Override template directory from CLI
-    config.settings.template_dir = args.template_dir.to_string_lossy().to_string();
+    if let Some(dir) = &args.template_dir {
+        config.settings.template_dir = dir.to_string_lossy().to_string();
+    }
 
     // Validate only if requested
     if args.validate {
@@ -162,48 +170,52 @@ async fn main() -> Result<()> {
 
     info!("Transform agent initialized");
 
-    if let Some(socket) = args.socket {
+    if let Some(grpc_addr) = args.grpc_address {
+        let addr = grpc_addr
+            .parse()
+            .context("Invalid gRPC address format (expected host:port)")?;
         info!(
             config = ?args.config,
-            socket = %socket.display(),
-            "Starting Zentinel Transform Agent (UDS v2)"
+            grpc_address = %grpc_addr,
+            "Listening on gRPC (agent protocol v2)"
         );
-
-        let server = UdsAgentServerV2::new("transform", socket, Box::new(agent));
-
-        info!("Transform agent ready and listening on UDS");
-
-        server
+        GrpcAgentServerV2::new("transform", Box::new(agent))
+            .run(addr)
+            .await
+            .context("Failed to run Transform Agent gRPC server")?;
+    } else {
+        info!(
+            config = ?args.config,
+            socket = %args.socket.display(),
+            "Listening on Unix socket (agent protocol v2)"
+        );
+        UdsAgentServerV2::new("transform", args.socket, Box::new(agent))
             .run()
             .await
             .context("Failed to run Transform Agent UDS server")?;
-
-        return Ok(());
     }
 
-    // Determine gRPC address
-    let grpc_addr = args
-        .grpc_address
-        .unwrap_or_else(|| "0.0.0.0:50051".to_string());
-
-    info!(
-        config = ?args.config,
-        grpc_address = %grpc_addr,
-        "Starting Zentinel Transform Agent (gRPC v2)"
-    );
-
-    let addr = grpc_addr
-        .parse()
-        .context("Invalid gRPC address format (expected host:port)")?;
-
-    let server = GrpcAgentServerV2::new("transform", Box::new(agent));
-
-    info!("Transform agent ready and listening on gRPC");
-
-    server
-        .run(addr)
-        .await
-        .context("Failed to run Transform Agent gRPC server")?;
-
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn version_names_the_binary() {
+        let err = Args::try_parse_from(["x", "--version"]).unwrap_err();
+        assert_eq!(
+            err.to_string().trim(),
+            format!("zentinel-transform-agent {}", env!("CARGO_PKG_VERSION"))
+        );
+    }
+
+    #[test]
+    fn defaults_to_the_unix_socket() {
+        let args = Args::try_parse_from(["x"]).unwrap();
+        assert!(args.grpc_address.is_none());
+        assert_eq!(args.socket, PathBuf::from("/tmp/zentinel-transform.sock"));
+        assert!(args.template_dir.is_none());
+    }
 }

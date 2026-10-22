@@ -1,0 +1,26 @@
+# Smoke-test rules (scripts/smoke-test.sh). The first matching rule, by
+# priority, applies.
+version: "1"
+rules:
+  - name: api
+    priority: 100
+    match:
+      path:
+        pattern: "^/api/(.*)$"
+    request:
+      headers:
+        set:
+          - name: X-Transform-Rule
+            value: api
+        remove:
+          - X-Internal-Debug
+  - name: everything-else
+    priority: 1
+    match:
+      path:
+        pattern: "^/"
+    request:
+      headers:
+        set:
+          - name: X-Transform-Smoke
+            value: "1"
