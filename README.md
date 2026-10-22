@@ -66,7 +66,7 @@ rules:
 EOF
 
 zentinel-transform-agent --config transform.yaml --validate
-zentinel-transform-agent --config transform.yaml --grpc-address 127.0.0.1:50051
+zentinel-transform-agent --config transform.yaml --socket /tmp/zentinel-transform.sock
 ```
 
 ```kdl
@@ -83,7 +83,7 @@ listeners {
 
 agents {
     agent "transform" type="custom" {
-        grpc "http://127.0.0.1:50051"
+        unix-socket "/tmp/zentinel-transform.sock"
         events "request_headers" "response_headers"
         timeout-ms 100
     }
@@ -114,10 +114,6 @@ upstreams {
 }
 ```
 
-Release 0.4.0 listens on gRPC only. `main` adds `--socket` for a Unix
-socket (then use `unix-socket "/var/run/zentinel/transform.sock"` in the
-agent block).
-
 ## Install
 
 ```bash
@@ -140,16 +136,17 @@ From source: `cargo build --release`.
 | Option | Default | Meaning |
 |---|---|---|
 | `--config`, `-c` | none (no rules) | Rules file; `.yaml`/`.yml` is read as YAML, anything else as JSON |
-| `--grpc-address` / `TRANSFORM_GRPC_ADDRESS` | `0.0.0.0:50051` | gRPC listen address |
-| `--socket`, `-s` / `TRANSFORM_SOCKET` | none | Listen on a Unix socket instead of gRPC (`main` only, unreleased) |
+| `--socket`, `-s` / `TRANSFORM_SOCKET` | `/tmp/zentinel-transform.sock` | Unix socket to serve agent protocol v2 on |
+| `--grpc-address` / `TRANSFORM_GRPC_ADDRESS` | unset | Serve gRPC on this address (e.g. `127.0.0.1:50051`) instead of the Unix socket; the proxy then connects with `grpc "http://..."` |
 | `--validate` | | Parse the file, compile the patterns and exit |
 | `--example-config` | | Print an example file and exit |
 | `--log-level` | `info` | Log level (`RUST_LOG` takes precedence) |
 | `--json-logs` | `false` | JSON log output |
-| `--template-dir` | `/etc/zentinel/templates` | Overrides `settings.template_dir` (templates are not applied, see below) |
+| `--template-dir` | unset | Overrides `settings.template_dir` (default `/etc/zentinel/templates`; templates are not applied, see below) |
 
-The default listen address is all interfaces; bind it to `127.0.0.1` unless
-the proxy runs on another host. The file is read once at startup. The proxy
+Release 0.4.0 (whose binary was built from 0.2.0 code) served gRPC only, on
+`0.0.0.0:50051`; the agent now serves the Unix socket unless `--grpc-address`
+is given. The file is read once at startup. The proxy
 does not forward an agent block's `config { }` to the agent, so use the file.
 
 ### Settings
@@ -200,6 +197,18 @@ These keys parse and pass `--validate`, but have no effect on the request:
 ```bash
 cargo test
 cargo clippy --all-targets -- -D warnings
+```
+
+`scripts/smoke-test.sh` runs the release binary behind a real Zentinel with
+the shared harness (`agent-smoke/smoke.py` from
+[zentinelproxy/.github](https://github.com/zentinelproxy/.github)), loading
+`scripts/smoke/rules.yaml`: a request under `/api/` gets the api rule's
+header and loses `X-Internal-Debug`, other requests get the catch-all rule's
+header, and stopping the agent changes the answer. CI runs it on every push;
+a release runs it on every platform before anything is published.
+
+```bash
+AGENT_SMOKE=../.github/agent-smoke/smoke.py scripts/smoke-test.sh target/release/zentinel-transform-agent ./zentinel
 ```
 
 ## Related
