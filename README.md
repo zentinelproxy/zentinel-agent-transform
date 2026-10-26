@@ -146,8 +146,10 @@ From source: `cargo build --release`.
 
 Release 0.4.0 (whose binary was built from 0.2.0 code) served gRPC only, on
 `0.0.0.0:50051`; the agent now serves the Unix socket unless `--grpc-address`
-is given. The file is read once at startup. The proxy
-does not forward an agent block's `config { }` to the agent, so use the file.
+is given. The file is read once at startup. Zentinel 26.10_8 and later send
+the agent block's `config { }` to the agent on every connection (releases up
+to 0.6.50 never did); this agent acknowledges it without applying it, so use
+the file.
 
 ### Settings
 
